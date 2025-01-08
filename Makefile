@@ -1,4 +1,4 @@
-APP_NAME := tmux-sesison-list
+APP_NAME := tmux-session-list
 
 build:
 	go build -o $(APP_NAME)
