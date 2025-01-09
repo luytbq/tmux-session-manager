@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -64,19 +65,53 @@ func SwitchTmuxSession(name string) error {
 	return err
 }
 
-// GetDataFilePath returns the appropriate path for the data file based on the OS
-func GetDataFilePath() (string, error) {
+func TmuxNewSession(name string) error {
+	// -d flag to start a new detached session
+	cmd := exec.Command("tmux", "new-session", "-s", name, "-d")
+	return cmd.Run()
+}
+
+func TmuxHasSession(name string) bool {
+	cmd := exec.Command("tmux", "has-session", "-t", name)
+	// ignore error "exit status 1"
+	out, _ := cmd.Output()
+	hasSession := strings.TrimRight(string(out), " \n	") == ""
+	return hasSession
+}
+
+func TmuxRenameSession(oldName, newName string) error {
+	cmd := exec.Command("tmux", "rename-session", "-t", oldName, newName)
+	return cmd.Run()
+}
+
+// GetDataFilePath returns the appropriate path for the app data directory based on the OS
+func GetAppDataDir(appName string) (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
 
-	appDir := filepath.Join(configDir, "tmux-harpoon")
+	appDir := filepath.Join(configDir, appName)
 	if err := os.MkdirAll(appDir, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	return filepath.Join(appDir, "data"), nil
+	return appDir, nil
+}
+
+func GetAppDataFile(appName, filename string) (string, error) {
+	appDir, err := GetAppDataDir(appName)
+	if err != nil {
+		return "", err
+	}
+
+	file := filepath.Join(appDir, filename)
+	_, err = os.Stat(file)
+	if errors.Is(err, os.ErrNotExist) {
+		_, err = os.Create(file)
+	}
+
+	return file, err
 }
 
 // Read lines of file into []string
@@ -106,6 +141,17 @@ func ReadFileLines(path string) (*[]string, error) {
 // Overwrite file content
 func OverwriteFile(path, content string) error {
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(content)
+	return err
+}
+
+// Append file content
+func AppendFile(path, content string) error {
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}

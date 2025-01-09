@@ -7,9 +7,16 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/luytbq/tmux-harpoon/utils"
 	"golang.org/x/term"
+)
+
+const (
+	app_name             = "tmux-session-list"
+	pinned_sessions_file = "pinned"
+	log_file             = app_name + ".log"
 )
 
 const (
@@ -17,8 +24,25 @@ const (
 	cr_not_pinned
 )
 
+var pinnedSessionsFile, logFile string
+
+func initFiles() error {
+	file, err := utils.GetAppDataFile(app_name, pinned_sessions_file)
+	if err != nil {
+		return err
+	}
+	pinnedSessionsFile = file
+
+	file, err = utils.GetAppDataFile(app_name, log_file)
+	if err != nil {
+		return err
+	}
+	logFile = file
+
+	return nil
+}
+
 type App struct {
-	dataFile          string
 	allSessions       []string
 	pinnedSessions    []string
 	notPinnedSessions []string
@@ -28,24 +52,20 @@ type App struct {
 	index             int
 	cursorRegion      int
 	Debug             bool
-	debugInfo         string
 	termOldState      *term.State
 }
 
 func NewApp() *App {
-	userDataFile, err := utils.GetDataFilePath()
+	err := initFiles()
 	if err != nil {
 		utils.StdErr(err.Error())
-		os.Exit(1)
-		return nil
 	}
 
 	app := &App{
-		dataFile:     userDataFile,
 		cursorRegion: cr_pinned,
 	}
 
-	pinnedSessions, err := utils.ReadFileLines(app.dataFile)
+	pinnedSessions, err := utils.ReadFileLines(pinnedSessionsFile)
 	if err != nil {
 		utils.StdErr(err.Error())
 		os.Exit(1)
@@ -53,13 +73,9 @@ func NewApp() *App {
 	}
 	app.pinnedSessions = *pinnedSessions
 
-	allSessions, err := utils.ReadTmuxSessions()
-	if err != nil {
-		utils.StdErr(err.Error())
-		os.Exit(1)
-		return nil
-	}
-	app.allSessions = *allSessions
+	app.getAllSessions()
+
+	app.calculateCursorRegion()
 
 	app.process()
 
@@ -72,7 +88,7 @@ func NewApp() *App {
 
 	for i, v := range app.pinnedSessions {
 		if v == currentName {
-			app.index = i
+			app.move(i)
 			break
 		}
 	}
@@ -87,7 +103,18 @@ func NewApp() *App {
 	return app
 }
 
+func (a *App) getAllSessions() {
+	allSessions, err := utils.ReadTmuxSessions()
+	if err != nil {
+		utils.StdErr(err.Error())
+		os.Exit(1)
+		return
+	}
+	a.allSessions = *allSessions
+}
+
 func (a *App) process() {
+
 	tmp := *new([]string)
 	for _, v := range a.pinnedSessions {
 		idx := slices.Index(a.allSessions, v)
@@ -99,7 +126,7 @@ func (a *App) process() {
 
 	a.notPinnedSessions = *new([]string)
 	for _, v := range a.allSessions {
-		idx := slices.IndexFunc(a.pinnedSessions, func(s string) bool { return s == v })
+		idx := slices.Index(a.pinnedSessions, v)
 		if idx < 0 {
 			a.notPinnedSessions = append(a.notPinnedSessions, v)
 		}
@@ -108,18 +135,13 @@ func (a *App) process() {
 	a.lenAll = len(a.allSessions)
 	a.lenPinned = len(a.pinnedSessions)
 	a.lenNotPinned = len(a.notPinnedSessions)
-
-	if a.lenPinned == 0 || a.index >= a.lenPinned {
-		a.cursorRegion = cr_not_pinned
-	} else {
-		a.cursorRegion = cr_pinned
-	}
 }
 
 func (a *App) update() {
 	a.process()
 	a.print()
 	a.savePinnedSessions()
+	a.calculateCursorRegion()
 }
 
 func (a *App) PrintPinned() {
@@ -147,11 +169,6 @@ func (a *App) print() {
 
 		fmt.Printf("%s [%d] %s\r\n", cursor, i, line)
 	}
-
-	if a.Debug && a.debugInfo != "" {
-		fmt.Printf("\r\n%s", a.debugInfo)
-		fmt.Printf("\r\n%+v", a)
-	}
 }
 
 func (a *App) move(index int) {
@@ -162,14 +179,36 @@ func (a *App) move(index int) {
 	} else {
 		a.index = index
 	}
+
+	a.calculateCursorRegion()
+}
+
+func (a *App) calculateCursorRegion() {
+	a.log("cr_pinned ", cr_pinned)
+	a.log("cr_not_pinned ", cr_not_pinned)
+	a.log("calculateCursorRegion before", a)
+	defer a.log("calculateCursorRegion after ", a)
+	if a.lenPinned == 0 || a.index >= a.lenPinned {
+		a.cursorRegion = cr_not_pinned
+	} else {
+		a.cursorRegion = cr_pinned
+	}
 }
 
 func (a *App) pinSession() {
-	a.pinnedSessions = append(a.pinnedSessions, a.notPinnedSessions[a.index-a.lenPinned])
+	a.log("pinSession before", a)
+	defer a.log("pinSession after ", a)
+	if a.cursorRegion != cr_not_pinned {
+		return
+	}
+	a.pinnedSessions = append(a.pinnedSessions, a.getSelectedSession())
 	a.update()
 }
 
 func (a *App) unpinSession() {
+	if a.cursorRegion != cr_pinned {
+		return
+	}
 	a.pinnedSessions = append(a.pinnedSessions[:a.index], a.pinnedSessions[a.index+1:]...)
 	a.update()
 }
@@ -205,10 +244,10 @@ func (a *App) reOrder(target int) {
 	}
 	tmp := a.pinnedSessions[a.index]
 	if a.index > target {
-		// shift line between the two up
+		// shift lines between the two up
 		copy(a.pinnedSessions[target+1:a.index+1], a.pinnedSessions[target:a.index])
 	} else {
-		// shift line between the two down
+		// shift lines between the two down
 		copy(a.pinnedSessions[a.index:target], a.pinnedSessions[a.index+1:target+1])
 	}
 	a.pinnedSessions[target] = tmp
@@ -216,8 +255,16 @@ func (a *App) reOrder(target int) {
 }
 
 func (a *App) savePinnedSessions() {
-	if err := utils.OverwriteFile(a.dataFile, strings.Join(a.pinnedSessions, "\n")); err != nil {
+	pinnedSessionsFile, err := utils.GetAppDataFile(app_name, pinned_sessions_file)
+	if err != nil {
 		utils.StdErr(err.Error())
+		os.Exit(1)
+		return
+	}
+	err = utils.OverwriteFile(pinnedSessionsFile, strings.Join(a.pinnedSessions, "\n"))
+	if err != nil {
+		utils.StdErr(err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -237,7 +284,7 @@ func (a *App) SwitchToPinned(target int) {
 	a.switchSession()
 }
 
-func (a *App) Interact() {
+func (a *App) Interactive() {
 	// Set up terminal for raw mode
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
@@ -260,7 +307,7 @@ func (a *App) Interact() {
 
 	a.print()
 	for {
-		buf := make([]byte, 3)
+		buf := make([]byte, 1)
 		_, err := os.Stdin.Read(buf)
 		if err != nil {
 			utils.StdErr(err.Error())
@@ -269,12 +316,15 @@ func (a *App) Interact() {
 		}
 
 		key := buf[0]
-		key1 := buf[1]
-		key2 := buf[2]
+
+		a.log(fmt.Sprintf("key received: int(key) = '%d', string(key)='%s'", int(key), string(key)), a)
 
 		switch {
 		case key == 3: // Ctrl-C
 			a.shutdown()
+			return
+		case key >= 48 && key <= 57: // 0->9
+			a.SwitchToPinned(int(key) - 48)
 			return
 		case key == 'j': // "j" focus down
 			a.move(a.index + 1)
@@ -287,12 +337,14 @@ func (a *App) Interact() {
 		case key == 27: // "esc"
 			flushStdin()
 			return
+		case key == 'n':
+			a.NewSessionInteractive()
+		case key == 'r':
+			a.RenameSessionInteractive()
 		case key == '\r': // enter
 			flushStdin()
 			a.switchSession()
-			if !a.Debug {
-				return
-			}
+			return
 
 		// cursor at "other sessions"
 		case a.cursorRegion == cr_not_pinned:
@@ -341,11 +393,131 @@ func (a *App) Interact() {
 				default:
 				}
 			}
+
+		default:
 		}
 
-		a.debugInfo = fmt.Sprintf("\r\nkey='%d' '%d' '%d'", key, key1, key2)
 		a.update()
 	}
+}
+
+func (a *App) PromptInput(prompt string) (string, error) {
+	fmt.Print(prompt)
+
+	input := ""
+	for {
+		buf := make([]byte, 1)
+		_, err := os.Stdin.Read(buf)
+		if err != nil {
+			utils.StdErr(err.Error())
+			return "", err
+		}
+		key := buf[0]
+
+		switch key {
+		case '\r':
+			return strings.TrimSpace(input), nil
+		case 3, 27: // Ctrl-C, esc
+			return "", fmt.Errorf("canceled")
+		default:
+			input += string(key)
+			fmt.Print(string(key))
+		}
+	}
+}
+
+func (a *App) RenameSessionInteractive() {
+	oldName := a.getSelectedSession()
+	newName, err := a.PromptInput(fmt.Sprintf("Rename '%s' to: ", oldName))
+	a.log("RenameSessionInteractive", newName, err)
+	if err != nil {
+		fmt.Print(err.Error() + "\r\n")
+		return
+	}
+	a.log("RenameSessionInteractive", oldName)
+	if newName == "" || newName == oldName {
+		return
+	}
+	a.RenameSession(oldName, newName)
+	if a.cursorRegion == cr_pinned {
+		idx := slices.Index(a.pinnedSessions, oldName)
+		if idx > 0 {
+			a.pinnedSessions[idx] = newName
+		}
+	}
+	a.getAllSessions()
+	a.process()
+}
+
+func (a *App) RenameSession(oldName, newName string) {
+	hasSession := utils.TmuxHasSession(newName)
+	a.log(fmt.Sprintf("RenameSession '%s' -> '%s' hasSession=%t", oldName, newName, hasSession))
+	if hasSession {
+		utils.StdOut(fmt.Sprintf("Session with name '%s' already existed", newName))
+		return
+	}
+	err := utils.TmuxRenameSession(oldName, newName)
+	if err != nil {
+		utils.StdOut(err.Error())
+		return
+	}
+}
+
+func (a *App) NewSessionInteractive() {
+	// a.print()
+	name, err := a.PromptInput("Enter new session name: ")
+	if err != nil {
+		fmt.Print(err.Error() + "\r\n")
+		return
+	}
+
+	if name == "" {
+		return
+	}
+	a.NewSession(name)
+	a.getAllSessions()
+	a.process()
+}
+
+func (a *App) NewSession(name string) {
+	err := utils.TmuxNewSession(name)
+	if err != nil {
+		utils.StdOut(err.Error())
+		return
+	}
+}
+
+func (a *App) log(objs ...any) {
+	if !a.Debug {
+		return
+	}
+
+	logTime := formatTime(time.Now())
+
+	var msg string
+	msg += logTime + " "
+
+	for i, obj := range objs {
+		if i > 1 {
+			msg += fmt.Sprintf("\n%+v ", obj)
+		} else {
+			msg += fmt.Sprintf("%+v ", obj)
+		}
+	}
+
+	// Ensure the message ends with a newline
+	if len(msg) == 0 || msg[len(msg)-1] != '\n' {
+		msg += "\n"
+	}
+
+	err := utils.AppendFile(logFile, msg)
+	if err != nil {
+		utils.StdOut(err.Error())
+	}
+}
+
+func formatTime(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05.000")
 }
 
 // Clear the screen

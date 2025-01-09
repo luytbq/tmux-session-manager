@@ -26,11 +26,11 @@ func main() {
 	app := app.NewApp()
 
 	// for debuging
-	// app.Debug = true
+	app.Debug = true
 
 	switch cmd {
 	case "", "it", "interactive":
-		app.Interact()
+		app.Interactive()
 	case "list":
 		app.PrintPinned()
 	case "switch":
