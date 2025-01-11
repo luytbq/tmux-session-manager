@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	Trace = constant.LogLevelTrace
-	Debug = constant.LogLevelDebug
-	Info  = constant.LogLevelInfo
-	Warn  = constant.LogLevelWarn
-	Error = constant.LogLevelError
-	Fatal = constant.LogLevelFatal
+	LevelTrace = constant.LogLevelTrace
+	LevelDebug = constant.LogLevelDebug
+	LevelInfo  = constant.LogLevelInfo
+	LevelWarn  = constant.LogLevelWarn
+	LevelError = constant.LogLevelError
+	LevelFatal = constant.LogLevelFatal
 )
 
 const baseLevel = config.LogLevel
@@ -30,6 +30,25 @@ func init() {
 		panic(err)
 	}
 	logFile = file
+}
+
+func Trace(objs ...any) {
+	Log(LevelTrace, objs...)
+}
+func Debug(objs ...any) {
+	Log(LevelDebug, objs...)
+}
+func Info(objs ...any) {
+	Log(LevelInfo, objs...)
+}
+func Warn(objs ...any) {
+	Log(LevelWarn, objs...)
+}
+func Error(objs ...any) {
+	Log(LevelError, objs...)
+}
+func Fatal(objs ...any) {
+	Log(LevelFatal, objs...)
 }
 
 func Log(level int, objs ...any) {
@@ -66,17 +85,17 @@ func formatTime(t time.Time) string {
 
 func getLogLevelLabel(level int) string {
 	switch int(level) {
-	case Trace:
+	case LevelTrace:
 		return "TRACE"
-	case Debug:
+	case LevelDebug:
 		return "DEBUG"
-	case Info:
+	case LevelInfo:
 		return "INFO"
-	case Warn:
+	case LevelWarn:
 		return "WARN"
-	case Error:
+	case LevelError:
 		return "ERROR"
-	case Fatal:
+	case LevelFatal:
 		return "FATAL"
 	default:
 		return "UNKNOW LEVEL"

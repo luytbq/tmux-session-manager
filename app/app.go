@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/signal"
@@ -88,7 +89,7 @@ func NewApp() *App {
 		}
 	}
 
-	log.Log(log.Info, config.AppName+" initialized")
+	log.Info(config.AppName + " initialized")
 	return app
 }
 
@@ -173,8 +174,8 @@ func (a *App) move(index int) {
 }
 
 func (a *App) calculateCursorRegion() {
-	log.Log(log.Trace, "calculateCursorRegion before", a)
-	defer log.Log(log.Trace, "calculateCursorRegion after ", a)
+	log.Trace("calculateCursorRegion before", a)
+	defer log.Trace("calculateCursorRegion after ", a)
 	if a.lenPinned == 0 || a.index >= a.lenPinned {
 		a.cursorRegion = cr_not_pinned
 	} else {
@@ -183,8 +184,8 @@ func (a *App) calculateCursorRegion() {
 }
 
 func (a *App) pinSession() {
-	log.Log(log.Trace, "pinSession before", a)
-	defer log.Log(log.Trace, "pinSession after ", a)
+	log.Trace("pinSession before", a)
+	defer log.Trace("pinSession after ", a)
 	if a.cursorRegion != cr_not_pinned {
 		return
 	}
@@ -271,18 +272,31 @@ func (a *App) SwitchToPinned(target int) {
 	a.switchSession()
 }
 
-func (a *App) Interactive() {
+func (a *App) SwitchToName(name string) error {
+	log.Debug("Enter new session")
+	return utils.SwitchTmuxSession(name)
+}
+
+// Enter terminal raw mode in order to perform interactive actions
+func (a *App) enterTermRawMode() {
 	// Set up terminal for raw mode
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		utils.StdErr(err.Error())
 		a.shutdown()
-
 	}
 	a.termOldState = oldState
-	defer func() {
-		_ = term.Restore(int(os.Stdin.Fd()), oldState)
-	}()
+}
+
+// Exit terminal raw mode
+func (a *App) exitTermRawMode() {
+	_ = term.Restore(int(os.Stdin.Fd()), a.termOldState)
+}
+
+func (a *App) Interactive() {
+
+	a.enterTermRawMode()
+	defer a.exitTermRawMode()
 
 	// Handle graceful exit on Ctrl+C
 	sigChan := make(chan os.Signal, 1)
@@ -304,7 +318,7 @@ func (a *App) Interactive() {
 
 		key := buf[0]
 
-		log.Log(log.Trace, fmt.Sprintf("key received: int(key) = '%d', string(key)='%s'", int(key), string(key)), a)
+		log.Trace(fmt.Sprintf("key received: int(key) = '%d', string(key)='%s'", int(key), string(key)), a)
 
 		switch {
 		case key == 3: // Ctrl-C
@@ -389,39 +403,29 @@ func (a *App) Interactive() {
 }
 
 func (a *App) PromptInput(prompt string) (string, error) {
+	a.exitTermRawMode()
+	defer a.enterTermRawMode()
+
 	fmt.Print(prompt)
 
-	input := ""
-	for {
-		buf := make([]byte, 1)
-		_, err := os.Stdin.Read(buf)
-		if err != nil {
-			utils.StdErr(err.Error())
-			return "", err
-		}
-		key := buf[0]
-
-		switch key {
-		case '\r':
-			return strings.TrimSpace(input), nil
-		case 3, 27: // Ctrl-C, esc
-			return "", fmt.Errorf("canceled")
-		default:
-			input += string(key)
-			fmt.Print(string(key))
-		}
+	reader := bufio.NewReader(os.Stdin) // Create a reader to read user input
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err.Error())
 	}
+
+	return strings.TrimSpace(input), err
 }
 
 func (a *App) RenameSessionInteractive() {
 	oldName := a.getSelectedSession()
 	newName, err := a.PromptInput(fmt.Sprintf("Rename '%s' to: ", oldName))
-	log.Log(log.Trace, "RenameSessionInteractive", newName, err)
+	log.Trace("RenameSessionInteractive", newName, err)
 	if err != nil {
 		fmt.Print(err.Error() + "\r\n")
 		return
 	}
-	log.Log(log.Trace, "RenameSessionInteractive", oldName)
+	log.Trace("RenameSessionInteractive", oldName)
 	if newName == "" || newName == oldName {
 		return
 	}
@@ -438,7 +442,7 @@ func (a *App) RenameSessionInteractive() {
 
 func (a *App) RenameSession(oldName, newName string) {
 	hasSession := utils.TmuxHasSession(newName)
-	log.Log(log.Info, fmt.Sprintf("RenameSession '%s' -> '%s' hasSession=%t", oldName, newName, hasSession))
+	log.Info(fmt.Sprintf("RenameSession '%s' -> '%s' hasSession=%t", oldName, newName, hasSession))
 	if hasSession {
 		utils.StdOut(fmt.Sprintf("Session with name '%s' already existed", newName))
 		return
@@ -452,6 +456,7 @@ func (a *App) RenameSession(oldName, newName string) {
 
 func (a *App) NewSessionInteractive() {
 	// a.print()
+	log.Debug("NewSessionInteractive")
 	name, err := a.PromptInput("Enter new session name: ")
 	if err != nil {
 		fmt.Print(err.Error() + "\r\n")
@@ -462,6 +467,25 @@ func (a *App) NewSessionInteractive() {
 		return
 	}
 	a.NewSession(name)
+
+	fmt.Printf("Press Enter to switch to '%s'", name)
+	buf := make([]byte, 1)
+	_, err = os.Stdin.Read(buf)
+	if err != nil {
+		utils.StdErr(err.Error())
+		os.Exit(1)
+		return
+	}
+	if buf[0] == '\r' {
+		err = a.SwitchToName(name)
+		if err != nil {
+			utils.StdErr(err.Error())
+			os.Exit(1)
+			return
+		}
+		a.shutdown()
+	}
+
 	a.getAllSessions()
 	a.process()
 }

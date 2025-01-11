@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/luytbq/tmux-session-list/log"
 )
 
 // Check whether tmux is running
