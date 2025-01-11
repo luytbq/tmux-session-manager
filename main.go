@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/luytbq/tmux-harpoon/app"
-	"github.com/luytbq/tmux-harpoon/utils"
+	"github.com/luytbq/tmux-session-list/app"
+	"github.com/luytbq/tmux-session-list/utils"
 )
 
 func main() {
@@ -24,9 +24,6 @@ func main() {
 	}
 
 	app := app.NewApp()
-
-	// for debuging
-	app.Debug = true
 
 	switch cmd {
 	case "", "it", "interactive":

@@ -1,4 +1,4 @@
-module github.com/luytbq/tmux-harpoon
+module github.com/luytbq/tmux-session-list
 
 go 1.22.1
 

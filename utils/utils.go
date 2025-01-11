@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/luytbq/tmux-session-list/log"
 )
 
 // Check whether tmux is running
@@ -74,7 +76,7 @@ func TmuxNewSession(name string) error {
 func TmuxHasSession(name string) bool {
 	cmd := exec.Command("tmux", "has-session", "-t", name)
 	// ignore error "exit status 1"
-	out, _ := cmd.Output()
+	out, _ := cmd.CombinedOutput()
 	hasSession := strings.TrimRight(string(out), " \n	") == ""
 	return hasSession
 }

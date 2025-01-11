@@ -7,16 +7,11 @@ import (
 	"slices"
 	"strings"
 	"syscall"
-	"time"
 
-	"github.com/luytbq/tmux-harpoon/utils"
+	"github.com/luytbq/tmux-session-list/config"
+	"github.com/luytbq/tmux-session-list/log"
+	"github.com/luytbq/tmux-session-list/utils"
 	"golang.org/x/term"
-)
-
-const (
-	app_name             = "tmux-session-list"
-	pinned_sessions_file = "pinned"
-	log_file             = app_name + ".log"
 )
 
 const (
@@ -24,20 +19,14 @@ const (
 	cr_not_pinned
 )
 
-var pinnedSessionsFile, logFile string
+var pinnedSessionsFile string
 
 func initFiles() error {
-	file, err := utils.GetAppDataFile(app_name, pinned_sessions_file)
+	file, err := utils.GetAppDataFile(config.AppName, config.PinnedSessionsFile)
 	if err != nil {
 		return err
 	}
 	pinnedSessionsFile = file
-
-	file, err = utils.GetAppDataFile(app_name, log_file)
-	if err != nil {
-		return err
-	}
-	logFile = file
 
 	return nil
 }
@@ -51,7 +40,6 @@ type App struct {
 	lenNotPinned      int
 	index             int
 	cursorRegion      int
-	Debug             bool
 	termOldState      *term.State
 }
 
@@ -100,6 +88,7 @@ func NewApp() *App {
 		}
 	}
 
+	log.Log(log.Info, config.AppName+" initialized")
 	return app
 }
 
@@ -184,10 +173,8 @@ func (a *App) move(index int) {
 }
 
 func (a *App) calculateCursorRegion() {
-	a.log("cr_pinned ", cr_pinned)
-	a.log("cr_not_pinned ", cr_not_pinned)
-	a.log("calculateCursorRegion before", a)
-	defer a.log("calculateCursorRegion after ", a)
+	log.Log(log.Trace, "calculateCursorRegion before", a)
+	defer log.Log(log.Trace, "calculateCursorRegion after ", a)
 	if a.lenPinned == 0 || a.index >= a.lenPinned {
 		a.cursorRegion = cr_not_pinned
 	} else {
@@ -196,8 +183,8 @@ func (a *App) calculateCursorRegion() {
 }
 
 func (a *App) pinSession() {
-	a.log("pinSession before", a)
-	defer a.log("pinSession after ", a)
+	log.Log(log.Trace, "pinSession before", a)
+	defer log.Log(log.Trace, "pinSession after ", a)
 	if a.cursorRegion != cr_not_pinned {
 		return
 	}
@@ -255,7 +242,7 @@ func (a *App) reOrder(target int) {
 }
 
 func (a *App) savePinnedSessions() {
-	pinnedSessionsFile, err := utils.GetAppDataFile(app_name, pinned_sessions_file)
+	pinnedSessionsFile, err := utils.GetAppDataFile(config.AppName, config.PinnedSessionsFile)
 	if err != nil {
 		utils.StdErr(err.Error())
 		os.Exit(1)
@@ -317,7 +304,7 @@ func (a *App) Interactive() {
 
 		key := buf[0]
 
-		a.log(fmt.Sprintf("key received: int(key) = '%d', string(key)='%s'", int(key), string(key)), a)
+		log.Log(log.Trace, fmt.Sprintf("key received: int(key) = '%d', string(key)='%s'", int(key), string(key)), a)
 
 		switch {
 		case key == 3: // Ctrl-C
@@ -429,12 +416,12 @@ func (a *App) PromptInput(prompt string) (string, error) {
 func (a *App) RenameSessionInteractive() {
 	oldName := a.getSelectedSession()
 	newName, err := a.PromptInput(fmt.Sprintf("Rename '%s' to: ", oldName))
-	a.log("RenameSessionInteractive", newName, err)
+	log.Log(log.Trace, "RenameSessionInteractive", newName, err)
 	if err != nil {
 		fmt.Print(err.Error() + "\r\n")
 		return
 	}
-	a.log("RenameSessionInteractive", oldName)
+	log.Log(log.Trace, "RenameSessionInteractive", oldName)
 	if newName == "" || newName == oldName {
 		return
 	}
@@ -451,7 +438,7 @@ func (a *App) RenameSessionInteractive() {
 
 func (a *App) RenameSession(oldName, newName string) {
 	hasSession := utils.TmuxHasSession(newName)
-	a.log(fmt.Sprintf("RenameSession '%s' -> '%s' hasSession=%t", oldName, newName, hasSession))
+	log.Log(log.Info, fmt.Sprintf("RenameSession '%s' -> '%s' hasSession=%t", oldName, newName, hasSession))
 	if hasSession {
 		utils.StdOut(fmt.Sprintf("Session with name '%s' already existed", newName))
 		return
@@ -485,39 +472,6 @@ func (a *App) NewSession(name string) {
 		utils.StdOut(err.Error())
 		return
 	}
-}
-
-func (a *App) log(objs ...any) {
-	if !a.Debug {
-		return
-	}
-
-	logTime := formatTime(time.Now())
-
-	var msg string
-	msg += logTime + " "
-
-	for i, obj := range objs {
-		if i > 1 {
-			msg += fmt.Sprintf("\n%+v ", obj)
-		} else {
-			msg += fmt.Sprintf("%+v ", obj)
-		}
-	}
-
-	// Ensure the message ends with a newline
-	if len(msg) == 0 || msg[len(msg)-1] != '\n' {
-		msg += "\n"
-	}
-
-	err := utils.AppendFile(logFile, msg)
-	if err != nil {
-		utils.StdOut(err.Error())
-	}
-}
-
-func formatTime(t time.Time) string {
-	return t.Format("2006-01-02 15:04:05.000")
 }
 
 // Clear the screen
