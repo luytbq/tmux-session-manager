@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/luytbq/tmux-session-list/app"
-	"github.com/luytbq/tmux-session-list/utils"
+	"github.com/luytbq/tmux-session-manager/app"
+	"github.com/luytbq/tmux-session-manager/utils"
 )
 
 func main() {

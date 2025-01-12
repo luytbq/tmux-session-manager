@@ -1,14 +1,94 @@
-# Usage
+# TMUX Session Manager
 
-```bash
- # start interactive mode
- tmux-session-list
- tmux-session-list it
- tmux-session-list interactive
+TMUX Session Manager is a command-line tool for managing your TMUX sessions. This app allows you to pin, reorder, rename, and switch between TMUX sessions with an interactive interface or simple commands.
 
- # switch to session `n`
- tmux-session-list switch n
+## Features
 
- # print pinned sessions
- tmux-session-list list
-```
+- **Interactive Mode:** Navigate, pin, and reorder sessions using keyboard shortcuts.
+- **Pinned Sessions Management:** Mark frequently used sessions as pinned for quick access.
+- **Session Switching:** Easily switch to any pinned session.
+- **Session Renaming:** Rename TMUX sessions interactively.
+- **Create New Sessions:** Quickly create and switch to a new TMUX session.
+
+## Requirements
+
+- **TMUX** installed and running.
+- **Go** installed to build the application.
+
+## Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/luytbq/tmux-session-manager.git
+   cd tmux-session-manager
+   ```
+
+2. Build the binary:
+
+   ```bash
+   go build -o tmux-session-manager main.go
+   ```
+
+3. Move the binary to a directory in your PATH:
+
+   ```bash
+   mv tmux-session-manager /usr/local/bin/
+   ```
+
+## Usage
+
+### Basic Commands
+
+- **Interactive Mode:**
+
+  ```bash
+  tmux-session-manager
+  ```
+
+  or
+
+  ```bash
+  tmux-session-manager it
+  ```
+
+- **List Pinned Sessions:**
+
+  ```bash
+  tmux-session-manager list
+  ```
+
+- **Switch to a Pinned Session:**
+
+  ```bash
+  tmux-session-manager switch <pinned index>
+  ```
+
+  Replace `<pinned index>` with the index of the pinned session (e.g., `0`, `1`, `2`, etc.).
+
+### Interactive Mode Shortcuts
+
+- `j` / `k`: Move focus down/up.
+- `J` / `K`: Swap session with the one below/above.
+- `p`: Pin the currently selected session.
+- `P`: Unpin the currently selected session.
+- `n`: Create a new session interactively.
+- `r`: Rename the currently selected session interactively.
+- `0-9`: Switch to a pinned session by index.
+- `Shift-0` to `Shift-9`: Reorder pinned sessions to a specific position.
+- `Enter`: Switch to the currently selected session.
+- `Esc`: Exit interactive mode.
+- `Ctrl-C`: Exit the application.
+
+## Error Handling
+
+- If TMUX is not running, the application will output an error and exit.
+- Invalid inputs for commands such as `switch` will result in a descriptive error message.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+---
+
+Enjoy managing your TMUX sessions with ease!

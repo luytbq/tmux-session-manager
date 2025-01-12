@@ -1,4 +1,4 @@
-module github.com/luytbq/tmux-session-list
+module github.com/luytbq/tmux-session-manager
 
 go 1.22.1
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/luytbq/tmux-session-list/config"
-	"github.com/luytbq/tmux-session-list/log"
-	"github.com/luytbq/tmux-session-list/utils"
+	"github.com/luytbq/tmux-session-manager/config"
+	"github.com/luytbq/tmux-session-manager/log"
+	"github.com/luytbq/tmux-session-manager/utils"
 	"golang.org/x/term"
 )
 

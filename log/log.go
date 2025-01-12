@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/luytbq/tmux-session-list/config"
-	"github.com/luytbq/tmux-session-list/constant"
+	"github.com/luytbq/tmux-session-manager/config"
+	"github.com/luytbq/tmux-session-manager/constant"
 )
 
 var (
