@@ -34,7 +34,22 @@ TMUX Session Manager is a command-line tool for managing your TMUX sessions. Thi
 
    ```bash
    mv tmux-session-manager /usr/local/bin/
+   chmod +x /usr/local/bin/tmux-session-manager
    ```
+
+4. Add tmux shortcuts
+
+```bash
+# add this to your .tmux.conf file
+  # replace prefix-s with tmux-session-list
+  bind-key -r s run-shell "tmux neww /usr/bin/tmux-session-list"
+
+  # switch to pinned sessions
+  bind-key -r j run-shell "tmux neww /usr/bin/tmux-session-list switch 0"
+  bind-key -r k run-shell "tmux neww /usr/bin/tmux-session-list switch 1"
+  bind-key -r u run-shell "tmux neww /usr/bin/tmux-session-list switch 2"
+  bind-key -r i run-shell "tmux neww /usr/bin/tmux-session-list switch 3"
+```
 
 ## Usage
 
@@ -84,10 +99,6 @@ TMUX Session Manager is a command-line tool for managing your TMUX sessions. Thi
 
 - If TMUX is not running, the application will output an error and exit.
 - Invalid inputs for commands such as `switch` will result in a descriptive error message.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
 
 ---
 
