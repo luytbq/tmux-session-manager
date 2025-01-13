@@ -342,6 +342,8 @@ func (a *App) Interactive() {
 			a.NewSessionInteractive()
 		case key == 'r':
 			a.RenameSessionInteractive()
+		case key == 'd':
+			a.KillSessionInteractive()
 		case key == '\r': // enter
 			flushStdin()
 			a.switchSession()
@@ -452,6 +454,31 @@ func (a *App) RenameSession(oldName, newName string) {
 		utils.StdOut(err.Error())
 		return
 	}
+}
+
+func (a *App) KillSessionInteractive() {
+	fmt.Printf("Press Enter to kill session '%s'", a.getSelectedSession())
+	buf := make([]byte, 1)
+	_, err := os.Stdin.Read(buf)
+	if err != nil {
+		utils.StdErr(err.Error())
+		os.Exit(1)
+		return
+	}
+	if buf[0] == '\r' {
+		err = a.killSession()
+		if err != nil {
+			utils.StdErr(err.Error())
+			os.Exit(1)
+			return
+		}
+	}
+	a.getAllSessions()
+	a.process()
+}
+
+func (a *App) killSession() error {
+	return utils.TmuxKillSession(a.getSelectedSession())
 }
 
 func (a *App) NewSessionInteractive() {

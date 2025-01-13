@@ -84,6 +84,11 @@ func TmuxRenameSession(oldName, newName string) error {
 	return cmd.Run()
 }
 
+func TmuxKillSession(name string) error {
+	cmd := exec.Command("tmux", "kill-session", "-t", name)
+	return cmd.Run()
+}
+
 // GetDataFilePath returns the appropriate path for the app data directory based on the OS
 func GetAppDataDir(appName string) (string, error) {
 	configDir, err := os.UserConfigDir()
