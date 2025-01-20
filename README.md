@@ -45,10 +45,10 @@ TMUX Session Manager is a command-line tool for managing your TMUX sessions. Thi
   bind-key -r s run-shell "tmux neww /usr/bin/tmux-session-list"
 
   # switch to pinned sessions
-  bind-key -r j run-shell "tmux neww /usr/bin/tmux-session-list switch 0"
-  bind-key -r k run-shell "tmux neww /usr/bin/tmux-session-list switch 1"
-  bind-key -r u run-shell "tmux neww /usr/bin/tmux-session-list switch 2"
-  bind-key -r i run-shell "tmux neww /usr/bin/tmux-session-list switch 3"
+  bind-key -r j run-shell "tmux neww /usr/bin/tmux-session-list switch 1"
+  bind-key -r k run-shell "tmux neww /usr/bin/tmux-session-list switch 2"
+  bind-key -r u run-shell "tmux neww /usr/bin/tmux-session-list switch 3"
+  bind-key -r i run-shell "tmux neww /usr/bin/tmux-session-list switch 4"
 ```
 
 ## Usage
@@ -79,7 +79,7 @@ TMUX Session Manager is a command-line tool for managing your TMUX sessions. Thi
   tmux-session-manager switch <pinned index>
   ```
 
-  Replace `<pinned index>` with the index of the pinned session (e.g., `0`, `1`, `2`, etc.).
+  Replace `<pinned index>` with the index of the pinned session (e.g., `1`, `2`, `3`, etc.).
 
 ### Interactive Mode Shortcuts
 
@@ -89,8 +89,8 @@ TMUX Session Manager is a command-line tool for managing your TMUX sessions. Thi
 - `P`: Unpin the currently selected session.
 - `n`: Create a new session interactively.
 - `r`: Rename the currently selected session interactively.
-- `0-9`: Switch to a pinned session by index.
-- `Shift-0` to `Shift-9`: Reorder pinned sessions to a specific position.
+- `1-9`: Switch to a pinned session by index.
+- `Shift-1` to `Shift-9`: Reorder pinned sessions to a specific position.
 - `Enter`: Switch to the currently selected session.
 - `Esc`: Exit interactive mode.
 - `Ctrl-C`: Exit the application.

@@ -39,7 +39,7 @@ func main() {
 		if err != nil {
 			panic("invalid target " + argTarget)
 		}
-		app.SwitchToPinned(int(target))
+		app.SwitchToPinned(int(target) - 1)
 	default:
 		help()
 		os.Exit(1)

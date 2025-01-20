@@ -141,7 +141,7 @@ func (a *App) PrintPinned() {
 			cursor = ">"
 		}
 
-		fmt.Printf("%s [%d] %s\r\n", cursor, i, line)
+		fmt.Printf("%s [%d] %s\r\n", cursor, i+1, line)
 	}
 }
 
@@ -157,7 +157,7 @@ func (a *App) print() {
 			cursor = ">"
 		}
 
-		fmt.Printf("%s [%d] %s\r\n", cursor, i, line)
+		fmt.Printf("%s [%d] %s\r\n", cursor, i+1, line)
 	}
 }
 
@@ -262,7 +262,7 @@ func (a *App) shutdown() {
 }
 
 func (a *App) SwitchToPinned(target int) {
-	if target >= a.lenPinned {
+	if target >= a.lenPinned || target < 0 {
 		utils.StdErr(fmt.Sprintf("Session #%d not found", target))
 		os.Exit(1)
 		return
@@ -324,8 +324,8 @@ func (a *App) Interactive() {
 		case key == 3: // Ctrl-C
 			a.shutdown()
 			return
-		case key >= 48 && key <= 57: // 0->9
-			a.SwitchToPinned(int(key) - 48)
+		case key >= 49 && key <= 57: // 1->9
+			a.SwitchToPinned(int(key) - 49)
 			return
 		case key == 'j': // "j" focus down
 			a.move(a.index + 1)
@@ -363,9 +363,7 @@ func (a *App) Interactive() {
 				case 'P':
 					a.unpinSession()
 
-				// "Shift-0" -> "Shift-9" put focused line to index
-				case ')':
-					a.reOrder(0)
+				// "Shift-1" -> "Shift-9" put focused line to index
 				case '!':
 					a.reOrder(1)
 				case '@':
