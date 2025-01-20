@@ -174,8 +174,6 @@ func (a *App) move(index int) {
 }
 
 func (a *App) calculateCursorRegion() {
-	log.Trace("calculateCursorRegion before", a)
-	defer log.Trace("calculateCursorRegion after ", a)
 	if a.lenPinned == 0 || a.index >= a.lenPinned {
 		a.cursorRegion = cr_not_pinned
 	} else {
@@ -184,8 +182,6 @@ func (a *App) calculateCursorRegion() {
 }
 
 func (a *App) pinSession() {
-	log.Trace("pinSession before", a)
-	defer log.Trace("pinSession after ", a)
 	if a.cursorRegion != cr_not_pinned {
 		return
 	}
@@ -354,6 +350,8 @@ func (a *App) Interactive() {
 			switch key {
 			case 'p':
 				a.pinSession()
+			default:
+				log.Trace(fmt.Sprintf("cursor = '%d' unknown key received: int(key) = '%d', string(key)='%s'", a.cursorRegion, int(key), string(key)))
 			}
 
 		// cursor at "pinned sessions"
@@ -384,14 +382,8 @@ func (a *App) Interactive() {
 					a.reOrder(9)
 				// end
 
-				// case '\r': // "Enter" save file then return selected
-				// 	if a.index >= 0 && a.index < len(a.pinnedSessions) {
-				// 		a.SavePinnedSession()
-				// 		flushStdin()
-				// 		fmt.Printf("%s\r\n", a.pinnedSessions[a.index])
-				// 	}
-				// 	return
 				default:
+					log.Trace(fmt.Sprintf("cursor = '%d' unknown key received: int(key) = '%d', string(key)='%s'", a.cursorRegion, int(key), string(key)))
 				}
 			}
 
