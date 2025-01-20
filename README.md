@@ -1,6 +1,8 @@
 # TMUX Session Manager
 
-TMUX Session Manager is a command-line tool for managing your TMUX sessions. This app allows you to pin, reorder, rename, and switch between TMUX sessions with an interactive interface or simple commands.
+TMUX Session Manager is a command-line tool for managing your TMUX sessions.
+This app allows you to pin, reorder, rename, and switch between TMUX sessions
+with an interactive interface or simple commands.
 
 ## Features
 
