@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/luytbq/tmux-session-manager/common"
 	"github.com/luytbq/tmux-session-manager/config"
-	"github.com/luytbq/tmux-session-manager/constant"
 )
 
 var (
-	LevelTrace = constant.LogLevelTrace
-	LevelDebug = constant.LogLevelDebug
-	LevelInfo  = constant.LogLevelInfo
-	LevelWarn  = constant.LogLevelWarn
-	LevelError = constant.LogLevelError
-	LevelFatal = constant.LogLevelFatal
+	LevelTrace = common.LogLevelTrace
+	LevelDebug = common.LogLevelDebug
+	LevelInfo  = common.LogLevelInfo
+	LevelWarn  = common.LogLevelWarn
+	LevelError = common.LogLevelError
+	LevelFatal = common.LogLevelFatal
 )
 
 const baseLevel = config.LogLevel
