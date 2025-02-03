@@ -207,9 +207,11 @@ func (a *App) getSelectedSession() string {
 
 // Switch to session at index
 func (a *App) switchSession() {
+	log.Debug(fmt.Sprintf("switchSession begin | a.index=%d", a.index))
+	defer log.Debug("switchSession end")
 	err := utils.SwitchTmuxSession(a.getSelectedSession())
 	if err != nil {
-		utils.StdErr(err.Error())
+		log.Error(err.Error())
 	}
 }
 
@@ -258,13 +260,16 @@ func (a *App) shutdown() {
 }
 
 func (a *App) SwitchToPinned(target int) {
+	log.Debug(fmt.Sprintf("SwitchToPinned begin | target=%d", target))
+	defer log.Debug("SwitchToPinned end")
 	if target >= a.lenPinned || target < 0 {
-		utils.StdErr(fmt.Sprintf("Session #%d not found", target))
+		log.Error(fmt.Sprintf("Session #%d not found", target))
 		os.Exit(1)
 		return
 	}
 
 	a.index = target
+	a.calculateCursorRegion()
 	a.switchSession()
 }
 
