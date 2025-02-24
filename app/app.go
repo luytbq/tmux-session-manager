@@ -368,23 +368,23 @@ func (a *App) Interactive() {
 
 				// "Shift-1" -> "Shift-9" put focused line to index
 				case '!':
-					a.reOrder(1)
+					a.reOrder(0)
 				case '@':
-					a.reOrder(2)
+					a.reOrder(1)
 				case '#':
-					a.reOrder(3)
+					a.reOrder(2)
 				case '$':
-					a.reOrder(4)
+					a.reOrder(3)
 				case '%':
-					a.reOrder(5)
+					a.reOrder(4)
 				case '^':
-					a.reOrder(6)
+					a.reOrder(5)
 				case '&':
-					a.reOrder(7)
+					a.reOrder(6)
 				case '*':
-					a.reOrder(8)
+					a.reOrder(7)
 				case '(':
-					a.reOrder(9)
+					a.reOrder(8)
 				// end
 
 				default:
